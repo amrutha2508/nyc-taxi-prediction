@@ -5,7 +5,7 @@ from dotenv import load_dotenv
 
 # 1. Load variables from .env file
 # Explicitly locate the .env file
-env_path = Path(__file__).parent / '.env'
+env_path = Path(__file__).parent.parent.parent / '.env'
 
 if not env_path.exists():
     raise FileNotFoundError(f"Could not find .env file at {env_path}")

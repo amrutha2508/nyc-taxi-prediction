@@ -59,5 +59,7 @@ appConfig = {
     "MLFLOW_TRACKING_URI": os.getenv("MLFLOW_TRACKING_URI"),
     "MLFLOW_BACKEND_URI": os.getenv("MLFLOW_BACKEND_URI"),
     "MLFLOW_ARTIFACT_ROOT": os.getenv("MLFLOW_ARTIFACT_ROOT"),
+    "SUPABASE_API_URL": os.getenv("SUPABASE_API_URL"),
+    "SUPABASE_SECRET_KEY": os.getenv("SUPABASE_SECRET_KEY")
     # "redis_url": os.getenv("REDIS_URL"),
 }
