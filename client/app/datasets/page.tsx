@@ -5,31 +5,6 @@ import { DatasetModal } from "@/components/Datasets/DatasetModal";
 import { apiClient } from "@/lib/api";
 import { IngestModal } from "@/components/Datasets/IngestModal";
 
-// Mock Data
-const datasets = [
-  { month: "June 2024", rows: 2841253, avgDistance: 3.8, avgDuration: 16.8, ingested: true, outliers: 2.3 },
-  { month: "May 2024", rows: 2756892, avgDistance: 3.6, avgDuration: 16.3, ingested: true, outliers: 2.1 },
-  { month: "April 2024", rows: 2691445, avgDistance: 3.5, avgDuration: 16.1, ingested: true, outliers: 2.0 },
-  // ... rest of your dataset array
-];
-
-const hourDistribution = Array.from({ length: 24 }, (_, i) => ({
-  hour: i,
-  count: Math.floor(Math.random() * 150000) + 50000
-}));
-
-const boroughData = [
-  { borough: "Manhattan", count: 1234567 },
-  { borough: "Brooklyn", count: 876543 },
-  { borough: "Queens", count: 654321 },
-]; 
-
-const vendorData = [
-  { name: "CMT", value: 45 },
-  { name: "VTS", value: 35 },
-  { name: "Other", value: 20 },
-];
-
 export default function DatasetsPage() {
   const [datasets, setDatasets] = useState<any[]>([]);
   const [selectedDataset, setSelectedDataset] = useState<any>({});
