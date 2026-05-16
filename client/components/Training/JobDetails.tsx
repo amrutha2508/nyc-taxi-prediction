@@ -1,6 +1,7 @@
 import { X, Brain, Copy } from "lucide-react"
 import { useState } from "react";
 import { apiClient } from "@/lib/api";
+import toast from "react-hot-toast";
 const statusStyles: Record<string, string> = {
   completed: "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20",
   running:   "bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 animate-pulse",
@@ -10,17 +11,13 @@ const statusStyles: Record<string, string> = {
 
 export default function JobDetails({ data, onClose }: { data: any; onClose: () => void }) {
   const params = data.parameters ?? {}
-  const [isModelRegister, setIsModelRegister] = useState(false);
   const handleModelRegister = async () => {
-    setIsModelRegister(true);
     try {
       await apiClient.post("/api/training/register", data);
-      alert("Model added to Model registery");
+      toast.success("Model added to Model registery");
     } catch (err) {
-      alert("Failed to register model.");
-    } finally {
-      setIsModelRegister(false);
-    }
+      toast.error("Failed to register model.")
+    } 
   };
 
   return (
@@ -70,7 +67,7 @@ export default function JobDetails({ data, onClose }: { data: any; onClose: () =
                   { label: "Job ID",        value: data.job_id, mono: true },
                   { label: "MLflow run ID", value: data.run_id, mono: true, copy: true },
                   { label: "Created at",    value: new Date(data.created_at).toUTCString() },
-                  { label: "Artifact URI",  value: data.artifact_uri, mono: true },
+                  // { label: "Artifact URI",  value: data.artifact_uri, mono: true },
                 ].map(({ label, value, mono, copy }) => (
                   <tr key={label} className="border-b border-gray-50 dark:border-gray-800 last:border-0">
                     <td className="px-4 py-2.5 text-gray-500 w-36">{label}</td>
@@ -135,8 +132,8 @@ export default function JobDetails({ data, onClose }: { data: any; onClose: () =
 
           {/* actions */}
           <div className="flex gap-2 pt-1">
-            <button className="btn btn-primary flex-1 text-sm py-2 border border-gray-200 rounded-lg hover:bg-gray-50" onClick={handleModelRegister}>
-              Add to model Registry
+            <button disabled={data?.is_registered === true} className="btn btn-primary flex-1 text-sm py-2 border border-gray-200 rounded-lg hover:bg-gray-50" onClick={handleModelRegister}>
+              {data?.is_registered === true ? "✓ Added to Model Registry": "Add to Model Registry"}
             </button>
           </div>
 

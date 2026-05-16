@@ -4,6 +4,21 @@ from pydantic import BaseModel
 from src.db.supabase import supabase
 from src.training.orchestrator import handle_frontend_training
 from typing import Any, List, Optional
+from fastapi import HTTPException
+import mlflow
+from dotenv import load_dotenv
+import os
+
+load_dotenv()
+
+# 2. Extract the string from the environment variables safely
+MLFLOW_TRACKING_URI = os.getenv("MLFLOW_TRACKING_URI")
+
+# 3. Pass it to mlflow (with a safety check)
+if not MLFLOW_TRACKING_URI:
+    raise ValueError("MLFLOW_TRACKING_URI is missing from your .env file!")
+
+mlflow.set_tracking_uri(MLFLOW_TRACKING_URI)
 
 router = APIRouter( tags=["training"])
 class TrainingRequest(BaseModel):
@@ -52,36 +67,70 @@ async def start_training(req: TrainingRequest, background_tasks: BackgroundTasks
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/register")
-def register_model(data:RegisterRequest):
+def register_model(data: RegisterRequest):
     print("input data:", data)
-    # 1. Fetch the job details from Supabase
+    
     job_id = data.job_id
     model_name = data.model_type
-    job = supabase.table("training_jobs").select("*").eq("job_id", job_id).single().execute()
-    
-    # 2. Get the latest version number for this model name
-    latest = supabase.table("model_registry") \
-        .select("version") \
-        .eq("model_name", model_name) \
-        .order("version", desc=True) \
-        .limit(1).execute()
-    
-    new_version = (latest.data[0]['version'] + 1) if latest.data else 1
+    run_id = data.run_id # Pull run_id directly from incoming request data
 
-    # 3. Insert into Registry
-    supabase.table("model_registry").insert({
-        "model_name": model_name,
-        "version": new_version,
-        "run_id": job.data['run_id'],
-        "job_id": job_id,
-        # "status": status,
-        "metrics": {
-            "train_rmse": job.data['train_rmse'],
-            "val_rmse": job.data['val_rmse']
+    try:
+        # 1. Fetch the job details from Supabase
+        job = supabase.table("training_jobs").select("*").eq("job_id", job_id).single().execute()
+        if not job.data:
+            raise HTTPException(status_code=404, detail="Job execution data not found.")
+
+        # 2. Get the latest version number for this model name from Supabase
+        latest = (
+            supabase.table("model_registry")
+            .select("version")
+            .eq("model_name", model_name)
+            .order("version", desc=True)
+            .limit(1)
+            .execute()
+        )
+        new_version = (latest.data[0]['version'] + 1) if latest.data else 1
+
+        # 3. Register the Model in MLflow
+        # MLflow points this run ID to its configured S3 bucket destination automatically
+        model_uri = f"runs:/{run_id}/model"
+        
+        # We use a unified model name in the MLflow registry (e.g., 'nyc-taxi-regressor')
+        mlflow_registry_name = "nyc-taxi-regressor" 
+        
+        mlflow_version_details = mlflow.register_model(
+            model_uri=model_uri, 
+            name=mlflow_registry_name
+        )
+
+        # Extract the S3 location from MLflow metadata
+        # e.g., 's3://your-mlflow-bucket/artifacts/1/3e8147.../artifacts/model'
+        s3_artifact_uri = mlflow_version_details.source
+
+        # 4. Insert into Supabase Registry (including our new S3 reference)
+        supabase.table("model_registry").insert({
+            "model_name": model_name,
+            "version": new_version,
+            "run_id": run_id,
+            "job_id": job_id,
+            "status": "candidate",
+            "artifact_uri": s3_artifact_uri, # <-- Saving the S3 location here
+            "metrics": {
+                "train_rmse": job.data['train_rmse'],
+                "val_rmse": job.data['val_rmse']
+            }
+        }).execute()
+        
+        # 5. Update the source training job status
+        supabase.table("training_jobs").update({"is_registered": True}).eq("job_id", job_id).execute()
+
+        return {
+            "status": "success",
+            "supabase_version": new_version,
+            "mlflow_version": mlflow_version_details.version,
+            "s3_location": s3_artifact_uri
         }
-    }).execute()
-    
-    # 4. Update the job status
-    supabase.table("training_jobs").update({"is_registered": True}).eq("job_id", job_id).execute()
 
-
+    except Exception as e:
+        print(f"Registration process failed: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))

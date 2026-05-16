@@ -3,6 +3,7 @@ import React, { useState, useEffect } from "react";
 import { Copy } from "lucide-react";
 import { ModelSidePanel } from "@/components/Models/ModelSidePanel";
 import { DeployModal } from "@/components/Models/DeployModal";
+import { apiClient } from "@/lib/api";
 
 const models = [
   { runId: "a3f9c2d1", dataset: "Jun 2024", trainRmse: 3.18, valRmse: 3.24, liveRmse: 3.24, stage: "Production", registeredAt: "2024-06-10 14:32" },
@@ -22,12 +23,28 @@ export default function ModelsPage() {
   const [deployingId, setDeployingId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [mounted, setMounted] = useState(false);
+  const [models, setModels] = useState([]);
 
-  useEffect(() => setMounted(true), []);
+
+  const fetchModels = async () => {
+    try {
+      // Assuming GET /training returns your RunID, datasets, status, etc.
+      const data = await apiClient.get("/api/models");
+      setModels(data);
+    } catch (err) { console.error("Failed to fetch models", err); }
+  };
+  useEffect(() => {
+    setMounted(true);
+    fetchModels();
+  }, []);
   if (!mounted) return null;
 
-  const filteredModels = models.filter(m => m.runId.includes(searchTerm.toLowerCase()));
-  const selectedModel = models.find(m => m.runId === selectedModelId);
+
+
+  const filteredModels = models.filter(m => m.model_name.includes(searchTerm.toLowerCase()));
+  const selectedModel = models.find(m => m.run_id === selectedModelId);
+  //  Add the '?' here to prevent the crash
+  const artifact_uri = selectedModel?.artifact_uri;
 
   return (
     <div className="main-content">
@@ -39,7 +56,7 @@ export default function ModelsPage() {
       <div className="filter-bar">
         <input 
           type="text" 
-          placeholder="Search RUN_ID..." 
+          placeholder="Search model type..." 
           className="filter-input" 
           onChange={(e) => setSearchTerm(e.target.value)}
         />
@@ -51,7 +68,8 @@ export default function ModelsPage() {
             <thead>
               <tr>
                 <th>RUN_ID</th>
-                <th>Dataset</th>
+                <th>model_name</th>
+                <th>version</th>
                 <th>Val RMSE</th>
                 <th>Stage</th>
                 <th>Actions</th>
@@ -59,20 +77,29 @@ export default function ModelsPage() {
             </thead>
             <tbody>
               {filteredModels.map((model) => (
-                <tr key={model.runId} onClick={() => setSelectedModelId(model.runId)} className="cursor-pointer">
-                  <td className="text-mono font-bold">{model.runId}</td>
-                  <td><span className="badge-dataset">{model.dataset}</span></td>
-                  <td>{model.valRmse.toFixed(2)}</td>
+                <tr key={model.id} onClick={() => setSelectedModelId(model.run_id)} className="cursor-pointer">
+                  <td className="text-mono font-bold">{model.run_id}</td>
+                  <td>{model.model_name}</td>
+                  <td><span className="badge-dataset">{model.version}</span></td>
+                  <td>{model.metrics.val_rmse.toFixed(2)}</td>
                   <td>
-                    <span className={`badge badge-${model.stage.toLowerCase()}`}>{model.stage}</span>
+                    <span className={`badge badge-${model.status.toLowerCase()}`}>{model.status}</span>
                   </td>
                   <td>
-                    {model.stage === "Staging" && (
+                    {model.status === "Staging" && (
                       <button 
-                        onClick={(e) => { e.stopPropagation(); setDeployingId(model.runId); }}
+                        onClick={(e) => { e.stopPropagation(); setDeployingId(model.run_id); }}
                         className="btn btn-success py-1 px-3"
                       >
                         Deploy
+                      </button>
+                    )}
+                    {model.status === "candidate" && (
+                      <button 
+                        onClick={(e) => { e.stopPropagation(); setDeployingId(model.run_id); }}
+                        className="btn btn-success py-1 px-3"
+                      >
+                        Stage the model
                       </button>
                     )}
                   </td>
@@ -85,12 +112,13 @@ export default function ModelsPage() {
 
       <ModelSidePanel 
         model={selectedModel} 
+        artifact_uri = {artifact_uri}
         onClose={() => setSelectedModelId(null)} 
         featureData={featureImportance}
       />
 
       {deployingId && (
-        <DeployModal runId={deployingId} onClose={() => setDeployingId(null)} />
+        <DeployModal run_id={deployingId} onClose={() => setDeployingId(null)} />
       )}
     </div>
   );
