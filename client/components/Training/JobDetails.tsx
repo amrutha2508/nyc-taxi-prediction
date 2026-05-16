@@ -15,6 +15,7 @@ export default function JobDetails({ data, onClose }: { data: any; onClose: () =
     try {
       await apiClient.post("/api/training/register", data);
       toast.success("Model added to Model registery");
+
     } catch (err) {
       toast.error("Failed to register model.")
     } 
@@ -132,7 +133,7 @@ export default function JobDetails({ data, onClose }: { data: any; onClose: () =
 
           {/* actions */}
           <div className="flex gap-2 pt-1">
-            <button disabled={data?.is_registered === true} className="btn btn-primary flex-1 text-sm py-2 border border-gray-200 rounded-lg hover:bg-gray-50" onClick={handleModelRegister}>
+            <button disabled={data?.is_registered === true} className="btn btn-primary flex-1 text-sm py-2 border border-gray-200 rounded-lg hover:bg-gray-50" onClick={()=>{handleModelRegister(); onClose()}}>
               {data?.is_registered === true ? "✓ Added to Model Registry": "Add to Model Registry"}
             </button>
           </div>

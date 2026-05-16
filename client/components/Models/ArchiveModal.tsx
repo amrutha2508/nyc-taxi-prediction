@@ -2,26 +2,12 @@ import { apiClient } from "@/lib/api";
 import { ArrowRight, AlertTriangle } from "lucide-react";
 import toast from "react-hot-toast";
 
-interface DeployModalProps {
+interface ArchiveModalProps {
   modelId: string;
   runId: string; // Added runId since it's used in the text
   onClose: () => void;
 }
-export const DeployModal = ({ modelId, onClose }: DeployModalProps) => {
-  console.log("in deplying modal");
-  console.log("modelId:", modelId);
-  const handleDeployModel = async () => {
-    console.log("model deploying function");
-    try {
-      // Fixed the template literal syntax bug here
-      const data = await apiClient.post(`/api/models/deploy/${modelId}`);
-      toast.success("Successfully Deployed the model");
-      console.log("model deployment result:", data);
-      onClose(); // Close the modal after success
-    } catch (error) {
-      toast.error("Failed to deploy the model");
-    }
-  };
+export const ArchiveModal = ({ modelId, onClose }: ArchiveModalProps) => {
   const handleArchiveModel = async () => {
     try {
       // Fixed the template literal syntax bug here
@@ -37,12 +23,12 @@ export const DeployModal = ({ modelId, onClose }: DeployModalProps) => {
   <div className="modal-overlay" onClick={onClose}>
     <div className="modal modal-small" onClick={(e) => e.stopPropagation()}>
       <div className="p-6">
-        <h2 className="modal-title mb-4">Deploy to Production</h2>
-        <div className="alert alert-warning mb-6">
+        <h2 className="modal-title mb-4">Archive the Model</h2>
+        {/* <div className="alert alert-warning mb-6">
           <p className="text-sm">
             Deploying <span className="font-mono font-bold">{modelId}</span> will replace the current production model.
           </p>
-        </div>
+        </div> */}
 
         {/* <div className="comparison-container mb-6">
           <div className="comparison-item">
@@ -59,13 +45,6 @@ export const DeployModal = ({ modelId, onClose }: DeployModalProps) => {
         <div className="flex gap-3">
           <button onClick={onClose} className="btn btn-secondary flex-1">Cancel</button>
           {/* <button className="btn btn-success flex-1">Confirm Deploy</button> */}
-          <button 
-            type="button" // <-- Prevents form submission side effects
-            onClick={handleDeployModel} 
-            className="btn btn-success flex-1"
-          >
-            Confirm Deploy
-          </button>
           <button 
             type="button" // <-- Prevents form submission side effects
             onClick={handleArchiveModel} 

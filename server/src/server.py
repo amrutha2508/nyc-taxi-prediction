@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from src.routes.datasetRoutes import router as datasetRoutes
 from src.routes.trainingRoutes import router as trainingRoutes
 from src.routes.modelRoutes import router as modelRoutes
+from src.routes.overviewRoutes import router as overviewRoutes
 
 app = FastAPI(
     title = "MLOps Application",
@@ -23,7 +24,7 @@ app.add_middleware(
 app.include_router(datasetRoutes, prefix="/api/datasets")
 app.include_router(trainingRoutes, prefix="/api/training")
 app.include_router(modelRoutes, prefix="/api/models")
-
+app.include_router(overviewRoutes, prefix="/api/overview")
 # if __name__ == "__main__":
 #     import uvicorn
 #     uvicorn.run(app,host="0.0.0.0",port = 8000, reload=True)

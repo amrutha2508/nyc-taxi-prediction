@@ -47,12 +47,12 @@ export default function RootLayout({
                 <Navbar />
 
                 {/* Production Model Badge */}
-                <div className="production-badge">
+                {/* <div className="production-badge">
                   <div className="pulse-dot" />
                   <span className="badge-text">
                     RUN: <span className="badge-run-id">a3f9c2d1</span>
                   </span>
-                </div>
+                </div> */}
               </div>
             </div>
           </header>

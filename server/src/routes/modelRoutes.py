@@ -32,3 +32,80 @@ async def get_model_details(job_id:str):
         return response.data
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/stage/{model_id}")
+async def stage_model(model_id:str):
+    # 'candidate', 'staging', 'production', 'archived'
+    try:
+        response = (
+            supabase.table("model_registry")
+            .update({"status": "staging"})
+            .eq("id", model_id)
+            .execute()
+        )
+        return response.data
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/deploy/{model_id}")
+async def deploy_model(model_id: str):
+    try:
+        # 1. Demote the active production model to 'archived'
+        # We target any model that currently has the status 'production'
+        supabase.table("model_registry") \
+            .update({"status": "archived"}) \
+            .eq("status", "production") \
+            .execute()
+            
+        # 2. Promote the target candidate/staging model to 'production'
+        response = (
+            supabase.table("model_registry")
+            .update({"status": "production"})
+            .eq("id", model_id)
+            .execute()
+        )
+        
+        if not response.data:
+            raise HTTPException(
+                status_code=404, 
+                detail=f"Model with ID {model_id} not found in registry."
+            )
+            
+        return {
+            "message": "Model deployed successfully. Previous production model archived.",
+            "data": response.data
+        }
+        
+    except HTTPException as he:
+        raise he
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    
+
+@router.post("/archive/{model_id}")
+async def deploy_model(model_id: str):
+    try:
+
+        response = (
+            supabase.table("model_registry")
+            .update({"status": "archived"})
+            .eq("id", model_id)
+            .execute()
+        )
+        
+        if not response.data:
+            raise HTTPException(
+                status_code=404, 
+                detail=f"Model with ID {model_id} not found in registry."
+            )
+            
+        return {
+            "message": "Model deployed successfully. Previous production model archived.",
+            "data": response.data
+        }
+        
+    except HTTPException as he:
+        raise he
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    
